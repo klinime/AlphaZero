@@ -89,7 +89,7 @@ class Agent():
 
 	def forward(self, s):
 		ps, vs = self.nnet.predict_on_batch(s)
-		return ps.numpy().flatten(), vs.numpy().flatten()
+		return ps.flatten(), vs.flatten()
 
 	def update(self, s, pi, z):
 		return np.mean(self.nnet.train_on_batch(s, {'policy': pi, 'value': z}))
