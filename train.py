@@ -6,21 +6,19 @@ import time
 parser = argparse.ArgumentParser(description='AlphaZero Training')
 parser.add_argument('--framework', choices=('tf', 'torch'), required=True)
 parser.add_argument('--game', type=str, required=True)
-parser.add_argument('--board_dim', type=int, required=True)
-parser.add_argument('--ac_dim', type=int, required=True)
-parser.add_argument('--state_depth', type=int, default=24)
-parser.add_argument('--n_layers', type=int, default=20)
-parser.add_argument('--filters', type=int, default=256)
-parser.add_argument('--head_filters', type=int, default=1)
-parser.add_argument('--learning_rate', type=float, default=1e-3)
-parser.add_argument('--weight_decay', type=float, default=1e-4)
-parser.add_argument('--sim_count', type=int, default=1600)
-parser.add_argument('--ep_count', type=int, default=25000)
-parser.add_argument('--epochs', type=int, default=1)
-parser.add_argument('--batch_size', type=int, default=4096)
-parser.add_argument('--step_size', type=int, default=128)
-parser.add_argument('--buffer_size', type=int, default=20)
-parser.add_argument('--td_epsilon', type=float, default=0)
+parser.add_argument('-his', '--history', type=int, default=3)
+parser.add_argument('-l',   '--n_layers', type=int, default=20)
+parser.add_argument('-f',   '--filters', type=int, default=256)
+parser.add_argument('-hf',  '--head_filters', type=int, default=1)
+parser.add_argument('-lr',  '--learning_rate', type=float, default=1e-3)
+parser.add_argument('-wd',  '--weight_decay', type=float, default=1e-4)
+parser.add_argument('-sim', '--sim_count', type=int, default=1600)
+parser.add_argument('-epi', '--ep_count', type=int, default=25000)
+parser.add_argument('-epo', '--epochs', type=int, default=1)
+parser.add_argument('-b',   '--batch_size', type=int, default=4096)
+parser.add_argument('-s',   '--step_size', type=int, default=128)
+parser.add_argument('-buf', '--buffer_size', type=int, default=20)
+parser.add_argument('-td',  '--td_epsilon', type=float, default=0)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--start_iter', type=int, default=0)
 parser.add_argument('--n_iter', type=int, default=100)
@@ -39,19 +37,17 @@ else:
 	from models.model_torch import Agent
 	device = torch.device(
 		'cuda' if (torch.cuda.is_available() and not args.cpu) else 'cpu')
-exec('from cy_{} import ReplayBuffer, self_play'.format(args.game))
+exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.game))
 path = args.log_dir
 
 def main(params):
 	np.random.seed(params['seed'])
 
+	history = params['history']
 	n_layers = params['n_layers']
 	filters = params['filters']
 	head_filters = params['head_filters']
 	c = params['weight_decay']
-	board_dim = params['board_dim']
-	ac_dim = params['ac_dim']
-	state_depth = params['state_depth']
 	lr = params['learning_rate']
 	buffer_size = params['buffer_size']
 	td = params['td_epsilon']
@@ -64,17 +60,18 @@ def main(params):
 	batch_size = params['batch_size']
 	step_size = params['step_size']
 
+	board_height, board_width, ac_dim, state_depth = get_game_details()
 	agent = Agent(
-		path, n_layers, filters, head_filters, c, 
-		board_dim, ac_dim, state_depth, lr, td, device)
-	rb = ReplayBuffer(path, capacity=buffer_size, td=td)
+		path, n_layers, filters, head_filters, c, board_height,
+		board_width, ac_dim, state_depth * history, lr, td, device)
+	rb = ReplayBuffer(path, history, buffer_size, td)
 	if start_iter > 0:
 		agent.load(start_iter-1)
 		rb.load(start_iter-1)
 
 	run_training_loop(
 		agent, rb, start_iter, n_iter, ep_count,
-		sim_count,td, epochs, batch_size, step_size)
+		sim_count, td, epochs, batch_size, step_size)
 
 def run_training_loop(
 		agent, rb, start_iter, n_iter, ep_count,
@@ -109,8 +106,7 @@ def run_training_loop(
 			self_play(
 				a_ep_count=1, a_sim_count=sim_count, a_tau=0,
 				eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-				rb=None, a_td=td, a_save=0, a_log=1, file=file,
-				idx_repr=othello_index, state_repr=othello_repr)
+				rb=None, a_td=td, a_save=0, a_log=1, file=file)
 		print('Logging complete.')
 		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
   
@@ -119,9 +115,7 @@ def run_training_loop(
 
 if __name__ == '__main__':
 	# params = {
-	# 	'board_dim': 8,
-	# 	'ac_dim': 65,
-	# 	'state_depth': 9,
+	#	'history': 3,
 	# 	'n_layers': 8,
 	# 	'filters': 128,
 	# 	'head_filters': 16,

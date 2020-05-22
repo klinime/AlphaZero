@@ -34,8 +34,7 @@ namespace util {
 namespace mcts {
     
     std::vector<std::vector<uint8_t>> get_eval_states(
-            std::vector<std::shared_ptr<Node>> &chosen,
-            int history, int state_depth, int board_size) {
+            std::vector<std::shared_ptr<Node>> &chosen, int history) {
         // stack history amount of states
         std::vector<std::vector<uint8_t>> states(chosen.size() * history);
         for (size_t i = 0; i < chosen.size(); ++i) {
@@ -47,7 +46,10 @@ namespace mcts {
                 --offset;
             }
             if (offset >= 0) {
-                std::vector<uint8_t> state(state_depth * board_size);
+                int size = chosen[0]->m_game->board_height() * \
+                    chosen[0]->m_game->board_width() * \
+                    chosen[0]->m_game->state_depth();
+                std::vector<uint8_t> state(size);
                 while (offset >= 0) {
                     states[i * history + offset] = state;
                     --offset;
@@ -64,7 +66,6 @@ namespace mcts {
         for (int i = trees.size() - 1; i >= 0; --i) {
             auto t = trees[i];
             while (t->m_game->terminal() & (t->m_children.size() > 0)) {
-                
                 // add dirichlet noise for exploration
                 std::vector<float> prior = t->m_prior;
                 if ((t == trees[i]) & (t->m_game->get_turn() <= cutoff) & (tau > 0)) {
@@ -115,8 +116,9 @@ namespace mcts {
 
     void backprop(std::vector<std::shared_ptr<Node>> &trees,
                   std::vector<std::shared_ptr<Node>> &chosen,
-                  std::vector<float> &priors, std::vector<float> &values, int ac_dim) {
+                  std::vector<float> &priors, std::vector<float> &values) {
         // assign priors to chosen nodes and backprop values until trees (root)
+        int ac_dim = trees[0]->m_game->ac_dim();
         for (int i = chosen.size() - 1; i >= 0; --i) {
             auto child = chosen[i];
             auto actions = child->m_game->get_action();

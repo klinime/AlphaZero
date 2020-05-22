@@ -11,10 +11,10 @@ namespace base {
         Game() {};
         virtual ~Game() {};
         uint8_t get_turn() { return this->m_turn; }
-        virtual int get_board_dim()   { return 0; }
-        virtual int get_board_size()  { return 0; }
-        virtual int get_ac_dim()      { return 0; }
-        virtual int get_state_depth() { return 0; }
+        virtual int board_height() { return 0; }
+        virtual int board_width()  { return 0; }
+        virtual int ac_dim()       { return 0; }
+        virtual int state_depth()  { return 0; }
         virtual std::vector<uint8_t> get_state() { return std::vector<uint8_t>(); };
         virtual std::vector<uint16_t> get_action()
         { return std::vector<uint16_t>(); };
@@ -53,14 +53,14 @@ namespace mcts {
         }
     };
     std::vector<std::vector<uint8_t>> get_eval_states
-        (std::vector<std::shared_ptr<Node>>&, int, int, int);
+        (std::vector<std::shared_ptr<Node>>&, int);
     void select(std::vector<std::shared_ptr<Node>>&,
                 std::vector<std::shared_ptr<Node>>&,
                 int, float, float, float, int);
     std::vector<float> expand(std::vector<std::shared_ptr<Node>>&);
     void backprop(std::vector<std::shared_ptr<Node>>&,
                   std::vector<std::shared_ptr<Node>>&,
-                  std::vector<float>&, std::vector<float>&, int);
+                  std::vector<float>&, std::vector<float>&);
 }
 
 #endif

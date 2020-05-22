@@ -9,10 +9,10 @@ namespace othello {
         Game();
         Game(uint8_t);
         uint8_t get_turn();
-        int get_board_dim();
-        int get_board_size();
-        int get_ac_dim();
-        int get_state_depth();
+        int board_height();
+        int board_width();
+        int ac_dim();
+        int state_depth();
         std::vector<uint8_t> get_state();
         std::vector<uint16_t> get_action();
         std::unique_ptr<base::Game> take_action(uint16_t);

@@ -57,10 +57,10 @@ namespace othello {
         this->m_state_init = 0;
     }
 
-    int Game::get_board_dim()   { return  8; }
-    int Game::get_board_size()  { return 64; }
-    int Game::get_ac_dim()      { return 65; }
-    int Game::get_state_depth() { return  3; }
+    int Game::board_height() { return  8; }
+    int Game::board_width()  { return  8; }
+    int Game::ac_dim()       { return 65; }
+    int Game::state_depth()  { return  3; }
     
     std::vector<uint8_t> Game::get_state() {
         if (this->m_state_init) {

@@ -38,8 +38,8 @@ def residual(x, name, filters, kernel_size, c, upscale=False):
 	return x
 
 def init_model(name, n_layers, filters, head_filters, c, 
-			   board_dim, ac_dim, state_depth):
-	s = Input(shape=(state_depth, board_dim, board_dim),
+			   height, width, ac_dim, depth):
+	s = Input(shape=(depth, height, width),
 			  dtype='float32', name='state')
 	x = residual(s, 'res0', filters, 3, c, upscale=True)
 	for i in range(1, n_layers):
@@ -76,11 +76,11 @@ def init_model(name, n_layers, filters, head_filters, c,
 
 class Agent():
 	def __init__(self, path, n_layers, filters, head_filters, c,
-				 board_dim, ac_dim, state_depth, lr, td, device):
+			height, width, ac_dim, depth, lr, td, device):
 		self.path = path
 		self.nnet = init_model(
 			'model', n_layers, filters, head_filters, c,
-			board_dim, ac_dim, state_depth)
+			height, width, ac_dim, depth)
 		self.nnet.compile(
 			optimizer=keras.optimizers.Adam(lr),
 			loss=['categorical_crossentropy', 'MSE'])

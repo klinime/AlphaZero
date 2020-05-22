@@ -78,19 +78,20 @@ Note: simplifying step 2 is top priority; any suggestion is welcome.
 To train on a game, run ```train.py``` with the following arguments:
 * ```framework```: ```tf``` for TensorFlow or ```torch``` for PyTorch.
 * ```game```: name of the game to train on
-* ```board_dim```: board dimension of game
-* ```ac_dim```: action dimension of game
-* ```state_depth```: number of historical states * number of layers in state representation
+* ```history```: number of past states to consider
 * ```n_layers```: number of residual layers for network
 * ```filters```: number of filters in residual layers
 * ```head_filters```: number of filters in policy and value head
+* ```learning_rate```: constant learning rate
+* ```weight_decay```: l2 regularization on all weights
 * ```sim_count```: number of simulations per move
 * ```ep_count```: number of episodes to play per iteration
 * ```epochs```: number of times to loop through replay buffer when updating
 * ```batch_size```: batch size to sample from replay buffer
 * ```step_size```: update batch in step size chunks
 * ```buffer_size```: number of iterations to keep in replay buffer
+* ```seed```: random seed. Note: running on GPU is not deterministic.
 * ```start_iter```: starting iteration; loads model and replay buffer if not zero
 * ```n_iter```: number of iterations to train
-* ```cpu```: train on CPU. Note: ```tf``` must be on GPU due to NCHW data format
+* ```cpu```: train on CPU. Note: ```tf``` must be on GPU due to NCHW data format.
 * ```log_dir```: directory to save models and replay buffer to

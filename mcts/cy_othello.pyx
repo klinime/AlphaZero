@@ -12,7 +12,8 @@ import pandas as pd
 from scipy.special import softmax
 from libc.stdint cimport uint8_t, uint16_t
 from libcpp.vector cimport vector
-from libcpp.memory cimport unique_ptr, shared_ptr, weak_ptr, make_shared
+from libcpp.memory cimport unique_ptr, shared_ptr, weak_ptr, \
+    make_unique, make_shared
 from libcpp.string cimport string
 from cython.operator cimport dereference as deref
 
@@ -21,13 +22,13 @@ cdef extern from "../games/othello.hpp" namespace "othello" nogil:
         Game() except +
         Game(uint8_t turn) except +
         uint8_t get_turn()
-        int get_board_dim()
-        int get_board_size()
-        int get_ac_dim()
-        int get_state_depth()
+        int board_height()
+        int board_width()
+        int ac_dim()
+        int state_depth()
         vector[uint8_t] get_state()
         vector[uint16_t] get_action()
-        unique_ptr take_action(uint16_t)
+        unique_ptr[Game] take_action(uint16_t)
         int terminal()
         int evaluate()
         string state_str()
@@ -42,14 +43,19 @@ cdef extern from "mcts.hpp" namespace "mcts" nogil:
         float m_value
         vector[float] m_prior
         Node() except +
-        Node(shared_ptr[Node], unique_ptr) except +
+        Node(shared_ptr[Node], unique_ptr[Game]) except +
     
-    vector[vector[uint8_t]] get_eval_states(vector[shared_ptr[Node]]&, int, int, int)
+    vector[vector[uint8_t]] get_eval_states(vector[shared_ptr[Node]]&, int)
     void select(vector[shared_ptr[Node]]&, vector[shared_ptr[Node]]&,
                 int, float, float, float, int)
     vector[float] expand(vector[shared_ptr[Node]]&)
     void backprop(vector[shared_ptr[Node]]&, vector[shared_ptr[Node]]&,
-                  vector[float]&, vector[float]&, int)
+                  vector[float]&, vector[float]&)
+
+cpdef (int, int, int, int) get_game_details():
+    cdef unique_ptr[Game] game = make_unique[Game]()
+    return deref(game).board_height(), deref(game).board_width(), \
+        deref(game).ac_dim(), deref(game).state_depth()
 
 ##############################################################################
 ############################### Replay Buffer ################################
@@ -227,21 +233,21 @@ cdef str log_stats(Node node):
 
 cdef np.ndarray[np.float32_t, ndim=4] tree_tonumpy(
         vector[vector[uint8_t]] states, int history,
-        int state_depth, int board_size, int board_dim):
+        int state_depth, int board_height, int board_width):
     # convert vectors generated from tree's get_eval_states to ndarrays
     cdef:
         np.ndarray[np.uint8_t, ndim=2] state_arr = np.empty(
-            (states.size(), state_depth * board_size), dtype=np.uint8)
+            (states.size(), state_depth * board_height * board_width), dtype=np.uint8)
         uint8_t[::1] state_view
         int i
     
     i = states.size() - 1
     while (i >= 0):
-        state_view = <uint8_t[:state_depth * board_size]> states[i].data()
+        state_view = <uint8_t[:state_depth * board_height * board_width]> states[i].data()
         state_arr[i] = np.asarray(state_view)
         i -= 1
     return state_arr.reshape((states.size() / history, history * state_depth, 
-                              board_dim, board_dim)).astype(np.float32)
+                              board_height, board_width)).astype(np.float32)
 
 cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
                  int tau, eval_func, float c_puct, float alpha, float epsilon,
@@ -261,10 +267,10 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         float v = 0
         vector[uint8_t] state
         uint8_t[::1] state_view
-        int board_dim = deref(deref(trees[0]).m_game).get_board_dim()
-        int board_size = deref(deref(trees[0]).m_game).get_board_size()
-        int ac_dim = deref(deref(trees[0]).m_game).get_ac_dim()
-        int state_depth = deref(deref(trees[0]).m_game).get_state_depth()
+        int board_height = deref(deref(trees[0]).m_game).board_height()
+        int board_width = deref(deref(trees[0]).m_game).board_width()
+        int ac_dim = deref(deref(trees[0]).m_game).ac_dim()
+        int state_depth = deref(deref(trees[0]).m_game).state_depth()
         int idx
         int i, j
     
@@ -273,16 +279,15 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
     while (i):
         select(trees, chosen, tau, c_puct, alpha, epsilon, cutoff)
         if (eval_func is not None):
-            priors, values = eval_func(tree_tonumpy(
-                get_eval_states(chosen, history, state_depth, board_size),
-                history, state_depth, board_size, board_dim))
+            priors, values = eval_func(tree_tonumpy(get_eval_states(chosen, history),
+                history, state_depth, board_height, board_width))
             # directly access array memory and assign to vector
             prior.assign(&priors[0], &priors[0] + trees.size() * ac_dim)
             value.assign(&values[0], &values[0] + trees.size())
         else:
             prior.assign(trees.size() * ac_dim, 1.0 / ac_dim)
             value = expand(chosen)
-        backprop(trees, chosen, prior, value, ac_dim)
+        backprop(trees, chosen, prior, value)
         i -= 1
     
     # choose next game by visit count
@@ -307,11 +312,11 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         children.erase(children.begin() + 1, children.end())
         
         # save to replay_buffer
-        if (save & (deref(deref(child).m_game).get_turn() >= state_depth)):
+        if (save & (deref(deref(child).m_game).get_turn() >= history)):
             state = deref(deref(child).m_game).get_state()
             # copies vector to array (prevent corruption)
             s = np.ascontiguousarray(state, dtype=np.uint8) \
-                .reshape((state_depth, board_dim, board_dim))
+                .reshape((state_depth, board_height, board_width))
             j = state_depth - 1
             while (j):
                 child = deref(child).m_parent.lock()
@@ -320,7 +325,7 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
                 state_view = <uint8_t[:state.size()]> state.data()
                 # since concatenate creates a copy anyways
                 s = np.concatenate((np.asarray(state_view).reshape(
-                    (state_depth, board_dim, board_dim)), s))
+                    (state_depth, board_height, board_width)), s))
                 j -= 1
             # copy softmaxed visit over legal actions to prior
             visit_soft = softmax(visit)

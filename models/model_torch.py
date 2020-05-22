@@ -27,7 +27,7 @@ class Residual(nn.Module):
 
 class Model(nn.Module):
 	def __init__(self, n_layers, in_planes, out_planes,
-				 head_planes, board_dim, ac_dim):
+				 head_planes, height, width, ac_dim):
 		super(Model, self).__init__()
 		self.res_layers = nn.Sequential(*([Residual(in_planes, out_planes, 3)] + \
 			[Residual(out_planes, out_planes, 3) for _ in range(1, n_layers)]))
@@ -35,13 +35,13 @@ class Model(nn.Module):
 		self.p_relu = nn.ReLU(inplace=True)
 		self.p_bn = nn.BatchNorm2d(head_planes)
 		self.p_flatten = nn.Flatten()
-		self.policy = nn.Linear(board_dim * board_dim * head_planes, ac_dim)
+		self.policy = nn.Linear(height * width * head_planes, ac_dim)
 		self.p_out = nn.Softmax(dim=1)
 		self.v_conv = nn.Conv2d(out_planes, head_planes * 2, 3, padding=1, bias=False)
 		self.v_relu = nn.ReLU(inplace=True)
 		self.v_bn = nn.BatchNorm2d(head_planes * 2)
 		self.v_flatten = nn.Flatten()
-		self.v_linear = nn.Linear(board_dim * board_dim * head_planes * 2, 256)
+		self.v_linear = nn.Linear(height * width * head_planes * 2, 256)
 		self.v_linrelu = nn.ReLU(inplace=True)
 		self.value = nn.Linear(256, 1)
 		self.v_out = nn.Tanh()
@@ -56,19 +56,19 @@ class Model(nn.Module):
 
 class Agent():
 	def __init__(self, path, n_layers, filters, head_filters, c,
-				 board_dim, ac_dim, state_depth, lr, td, device):
+				 height, width, ac_dim, depth, lr, td, device):
 		self.path = path
 		self.nnet = Model(
-			n_layers, state_depth, filters,
-			head_filters, board_dim, ac_dim).to(device)
+			n_layers, depth, filters, head_filters,
+			height, width, ac_dim).to(device)
 		self.p_loss = nn.CrossEntropyLoss()
 		self.v_loss = nn.MSELoss()
 		self.opt = optim.Adam(self.nnet.parameters(), lr=lr, weight_decay=c)
 		self.device = device
-        if device.type == 'cuda':
-            self.scaler = torch.cuda.amp.GradScaler()
+		if device.type == 'cuda':
+			self.scaler = torch.cuda.amp.GradScaler()
 		self.td = td
-		summary(self.nnet, input_size=(state_depth, board_dim, board_dim))
+		summary(self.nnet, input_size=(depth, height, width))
 
 	def forward(self, s):
 		ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
@@ -79,29 +79,29 @@ class Agent():
 		ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
 		p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
 		v_loss = self.v_loss(vs, torch.from_numpy(z).to(self.device))
-        if self.device.type == 'cuda':
-            self.scaler.scale(p_loss).backward(retain_graph=True)
-            self.scaler.scale(v_loss).backward()
-            self.scaler.step(self.opt)
-            self.scaler.update()
-        else:
-            p_loss.backward()
-            v_loss.backward()
-            self.opt.step()
+		if self.device.type == 'cuda':
+			self.scaler.scale(p_loss).backward(retain_graph=True)
+			self.scaler.scale(v_loss).backward()
+			self.scaler.step(self.opt)
+			self.scaler.update()
+		else:
+			p_loss.backward()
+			v_loss.backward()
+			self.opt.step()
 		return np.mean([p_loss.item(), v_loss.item()])
 
 	def save(self, i):
 		file = '{}/{:03d}/model{}.pth'.format(self.path, i,
-            '_td' if self.td else '')
+			'_td' if self.td else '')
 		torch.save({
-            'model': self.nnet.state_dict(),
-            'opt': self.opt.state_dict(),
-        }, file)
+			'model': self.nnet.state_dict(),
+			'opt': self.opt.state_dict(),
+		}, file)
 		print('Model saved.')
 		
 	def load(self, i):
 		file = '{}/{:03d}/model{}.pth'.format(self.path, i,
-            '_td' if self.td else '')
+			'_td' if self.td else '')
 		checkpoint = torch.load(file)
 		self.nnet.load_state_dict(checkpoint['model'])
 		self.opt.load_state_dict(checkpoint['opt'])
