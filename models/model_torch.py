@@ -76,9 +76,9 @@ class Agent():
 
 	def update(self, s, pi, z):
 		self.opt.zero_grad()
-		ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
+		ps, vs = self.nnet(torch.from_numpy(s.astype(np.float32)).to(self.device))
 		p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
-		v_loss = self.v_loss(vs, torch.from_numpy(z).to(self.device))
+		v_loss = self.v_loss(vs, torch.from_numpy(z.astype(np.float32)).to(self.device))
 		if self.device.type == 'cuda':
 			self.scaler.scale(p_loss).backward(retain_graph=True)
 			self.scaler.scale(v_loss).backward()
