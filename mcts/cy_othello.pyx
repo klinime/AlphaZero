@@ -170,26 +170,26 @@ cdef class ReplayBuffer:
     
     cpdef void save(self, int i):
         # save replay buffer at iteration i
-        np.save("{}{:03d}/state{}.npy" \
+        np.save("{}/{:03d}/state{}.npy" \
                 .format(self.path, i, "_td" if self.td else ""), self.s)
-        np.save("{}{:03d}/policy{}.npy" \
+        np.save("{}/{:03d}/policy{}.npy" \
                 .format(self.path, i, "_td" if self.td else ""), self.pi)
-        np.save("{}{:03d}/result{}.npy" \
+        np.save("{}/{:03d}/result{}.npy" \
                 .format(self.path, i, "_td" if self.td else ""), self.z)
-        np.save("{}{:03d}/index{}.npy" \
+        np.save("{}/{:03d}/index{}.npy" \
                 .format(self.path, i, "_td" if self.td else ""),
                 np.array(self.idx, dtype=np.int64))
         print("ReplayBuffer saved.")
       
     cpdef void load(self, int i=-1):
         # load replay buffer at iteration i
-        self.s = np.load("{}{:03d}/state{}.npy" \
+        self.s = np.load("{}/{:03d}/state{}.npy" \
                          .format(self.path, i, "_td" if self.td else ""))
-        self.pi = np.load("{}{:03d}/policy{}.npy" \
+        self.pi = np.load("{}/{:03d}/policy{}.npy" \
                           .format(self.path, i, "_td" if self.td else ""))
-        self.z = np.load("{}{:03d}/result{}.npy" \
+        self.z = np.load("{}/{:03d}/result{}.npy" \
                          .format(self.path, i, "_td" if self.td else ""))
-        self.idx.extend(np.load("{}{:03d}/index{}.npy" \
+        self.idx.extend(np.load("{}/{:03d}/index{}.npy" \
                                 .format(self.path, i, "_td" if self.td else "")))
         print("ReplayBuffer loaded.")
 

@@ -95,13 +95,13 @@ class Agent():
 		return np.mean(self.nnet.train_on_batch(s, {'policy': pi, 'value': z}))
 
 	def save(self, i):
-		folder = '{}{:03d}/model{}'.format(self.path, i,
+		folder = '{}/{:03d}/model{}'.format(self.path, i,
             '_td' if self.td else '')
 		keras.models.save_model(self.nnet, folder)
 		print('Model saved.')
 		
 	def load(self, i):
-		folder = '{}{:03d}/model{}'.format(self.path, i,
+		folder = '{}/{:03d}/model{}'.format(self.path, i,
             '_td' if self.td else '')
 		self.nnet = keras.models.load_model(folder)
 		print('Model loaded.')

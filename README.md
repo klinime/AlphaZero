@@ -7,7 +7,7 @@ C++ & Cython based efficient and extendable implementation of AlphaZero based on
 * Cython (>=3.0a1)
 * numpy (>=1.17.0)
 * pandas (>=0.25.0)
-* scipy (>=1.3.0)
+* scipy (>=1.4.1)
 * tensorflow (2.2.0)
 * torch (1.5.0)
 

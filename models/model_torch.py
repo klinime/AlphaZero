@@ -91,7 +91,7 @@ class Agent():
 		return np.mean([p_loss.item(), v_loss.item()])
 
 	def save(self, i):
-		file = '{}{:03d}/model{}.pth'.format(self.path, i,
+		file = '{}/{:03d}/model{}.pth'.format(self.path, i,
             '_td' if self.td else '')
 		torch.save({
             'model': self.nnet.state_dict(),
@@ -100,7 +100,7 @@ class Agent():
 		print('Model saved.')
 		
 	def load(self, i):
-		file = '{}{:03d}/model{}.pth'.format(self.path, i,
+		file = '{}/{:03d}/model{}.pth'.format(self.path, i,
             '_td' if self.td else '')
 		checkpoint = torch.load(file)
 		self.nnet.load_state_dict(checkpoint['model'])
