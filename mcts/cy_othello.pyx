@@ -404,7 +404,6 @@ cpdef (int, int, int) self_play(int a_ep_count, int a_sim_count, int a_tau,
                     rbs[i].update_result(result)
                     rb.extend(rbs.pop(i))
                 if (log):
-                    # file.write(content)
-                    print(content)
+                    file.write(content)
             i -= 1
     return (scores[2], scores[0], scores[1]) # black, white, draw
