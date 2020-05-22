@@ -3,7 +3,7 @@
 C++ & Cython based efficient and extendable implementation of AlphaZero based on Deepmind's papers [Mastering the game of Go without Human Knowledge](https://deepmind.com/research/publications/mastering-game-go-without-human-knowledge) and [A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play](https://deepmind.com/research/publications/general-reinforcement-learning-algorithm-masters-chess-shogi-and-go-through-self-play). Tensorflow 2.x and PyTorch implementations available.
 
 ## Dependencies
-* Python (>= 3.7.0)
+* Python (>= 3.6.0)
 * Cython (>=3.0a1)
 * numpy (>=1.17.0)
 * pandas (>=0.25.0)
@@ -82,19 +82,20 @@ To train on a game, run ```train.py``` with the following arguments:
 * ```framework```: ```tf``` for TensorFlow or ```torch``` for PyTorch.
 * ```game```: name of the game to train on
 * ```history```: number of past states to consider
-* ```n_layers```: number of residual layers for network
+* ```layers```: number of residual layers for network
 * ```filters```: number of filters in residual layers
-* ```head_filters```: number of filters in policy and value head
-* ```learning_rate```: constant learning rate
-* ```weight_decay```: l2 regularization on all weights
-* ```sim_count```: number of simulations per move
-* ```ep_count```: number of episodes to play per iteration
+* ```head-filters```: number of filters in policy and value head
+* ```learning-rate```: constant learning rate
+* ```weight-decay```: l2 regularization on all weights
+* ```sim-count```: number of simulations per move
+* ```ep-count```: number of episodes to play per iteration
 * ```epochs```: number of times to loop through replay buffer when updating
-* ```batch_size```: batch size to sample from replay buffer
-* ```step_size```: update batch in step size chunks
-* ```buffer_size```: number of iterations to keep in replay buffer
+* ```batch-size```: batch size to sample from replay buffer
+* ```step-size```: update batch in step size chunks
+* ```buffer-size```: number of iterations to keep in replay buffer
 * ```seed```: random seed. Note: running on GPU is not deterministic.
-* ```start_iter```: starting iteration; loads model and replay buffer if not zero
-* ```n_iter```: number of iterations to train
+* ```start-iter```: starting iteration; loads model and replay buffer if not zero
+* ```n-iter```: number of iterations to train
 * ```cpu```: train on CPU. Note: ```tf``` must be on GPU due to NCHW data format.
-* ```log_dir```: directory to save models and replay buffer to
+* ```log-dir```: directory to save models and replay buffer to
+* ```log-match```: log sample match at end of each iteration

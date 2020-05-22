@@ -28,11 +28,11 @@ class Residual(nn.Module):
 		return self.bn2(self.relu2(x + self.conv2(out)))
 
 class Model(nn.Module):
-	def __init__(self, n_layers, in_planes, out_planes,
+	def __init__(self, layers, in_planes, out_planes,
 				 head_planes, height, width, ac_dim):
 		super(Model, self).__init__()
 		self.res_layers = nn.Sequential(*([Residual(in_planes, out_planes, 3)] + \
-			[Residual(out_planes, out_planes, 3) for _ in range(1, n_layers)]))
+			[Residual(out_planes, out_planes, 3) for _ in range(1, layers)]))
 		self.p_conv = nn.Conv2d(out_planes, head_planes, 3, padding=1, bias=False)
 		self.p_relu = nn.ReLU(inplace=True)
 		self.p_bn = nn.BatchNorm2d(head_planes)
@@ -57,11 +57,11 @@ class Model(nn.Module):
 		return p, v
 
 class Agent():
-	def __init__(self, path, n_layers, filters, head_filters, c,
+	def __init__(self, path, layers, filters, head_filters, c,
 				 height, width, ac_dim, depth, lr, td, device):
 		self.path = path
 		self.nnet = Model(
-			n_layers, depth, filters, head_filters,
+			layers, depth, filters, head_filters,
 			height, width, ac_dim).to(device)
 		self.p_loss = nn.KLDivLoss(reduction='batchmean')
 		self.v_loss = nn.MSELoss()

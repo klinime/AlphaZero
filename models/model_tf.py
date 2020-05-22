@@ -38,12 +38,12 @@ def residual(x, name, filters, kernel_size, c, upscale=False):
 	x = BatchNormalization(name=name+'_bn1')(x)
 	return x
 
-def init_model(name, n_layers, filters, head_filters, c, 
+def init_model(name, layers, filters, head_filters, c,
 			   height, width, ac_dim, depth):
 	s = Input(shape=(depth, height, width),
 			  dtype='float32', name='state')
 	x = residual(s, 'res0', filters, 3, c, upscale=True)
-	for i in range(1, n_layers):
+	for i in range(1, layers):
 		x = residual(x, 'res{}'.format(i), filters, 3, c)
 
 	p = Conv2D(
@@ -76,11 +76,11 @@ def init_model(name, n_layers, filters, head_filters, c,
 	return tf.keras.Model(inputs=s, outputs=[p, v], name=name)
 
 class Agent():
-	def __init__(self, path, n_layers, filters, head_filters, c,
+	def __init__(self, path, layers, filters, head_filters, c,
 			height, width, ac_dim, depth, lr, td, device):
 		self.path = path
 		self.nnet = init_model(
-			'model', n_layers, filters, head_filters, c,
+			'model', layers, filters, head_filters, c,
 			height, width, ac_dim, depth)
 		self.nnet.compile(
 			optimizer=keras.optimizers.Adam(lr),
