@@ -2,16 +2,11 @@
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
-from pathlib import Path
 
-path = Path(__file__).parent
-abspath = str(path.absolute())
-with open(path/'sources.txt', 'r') as file:
+with open('./sources.txt', 'r') as file:
 	extensions = [
 		Extension('cy_' + s,
-			['{}/mcts/cy_{}.pyx'.format(abspath, s),
-			 '{}/games/{}.cpp'.format(abspath, s),
-			 '{}/mcts/mcts.cpp'.format(abspath)],
+			['./mcts/cy_{}.pyx'.format(s), './games/{}.cpp'.format(s), './mcts/mcts.cpp'],
 			extra_compile_args=['-std=c++17'])
 		for s in file.read().splitlines()
 	]

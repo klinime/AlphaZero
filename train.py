@@ -1,6 +1,7 @@
 
 import argparse
 import numpy as np
+from pathlib import Path
 import time
 
 parser = argparse.ArgumentParser(description='AlphaZero Training')
@@ -39,6 +40,7 @@ else:
 		'cuda' if (torch.cuda.is_available() and not args.cpu) else 'cpu')
 exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.game))
 path = args.log_dir
+Path(path).mkdir(parents=True, exist_ok=True)
 
 def main(params):
 	np.random.seed(params['seed'])
@@ -91,7 +93,7 @@ def run_training_loop(
 		print('\nUpdating parameters...')
 		loss = np.mean([agent.update(*sample) \
 			for sample in rb.sample(epochs, batch_size, step_size)])
-		with open('{}loss{}.txt'.format(path, '_td' if td else ''), 'a') as file:
+		with open('{}/loss{}.txt'.format(path, '_td' if td else ''), 'a') as file:
 			file.write('\n{}'.format(loss))
 		print('Loss: {:.3f}'.format(loss))
 		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
@@ -101,7 +103,7 @@ def run_training_loop(
 		rb.save(i)
 
 		print('\nLogging sample match...')
-		with open('{}{:03d}/sample_match{}.txt' \
+		with open('{}/{:03d}/sample_match{}.txt' \
 				.format(path, i, '_td' if td else ''), 'w') as file:
 			self_play(
 				a_ep_count=1, a_sim_count=sim_count, a_tau=0,
