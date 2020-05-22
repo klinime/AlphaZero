@@ -63,7 +63,7 @@ class Agent():
 		self.nnet = Model(
 			n_layers, depth, filters, head_filters,
 			height, width, ac_dim).to(device)
-		self.p_loss = nn.KLDivLoss()
+		self.p_loss = nn.KLDivLoss(reduction='batchmean')
 		self.v_loss = nn.MSELoss()
 		self.opt = optim.Adam(self.nnet.parameters(), lr=lr, weight_decay=c)
 		self.device = device
