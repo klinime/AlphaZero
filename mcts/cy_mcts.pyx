@@ -17,6 +17,9 @@ from libcpp.memory cimport unique_ptr, shared_ptr, weak_ptr, \
 from libcpp.string cimport string
 from cython.operator cimport dereference as deref
 
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
+
 cdef extern from "mcts.hpp" namespace "base" nogil:
     cdef cppclass Game:
         Game() except +
