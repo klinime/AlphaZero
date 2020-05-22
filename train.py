@@ -108,7 +108,7 @@ def run_training_loop(
 			self_play(
 				a_ep_count=1, a_sim_count=sim_count, a_tau=0,
 				eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-				rb=None, a_td=td, a_save=0, a_log=1, file=file)
+				rb=rb, a_td=0, a_save=0, a_log=1, file=file)
 		print('Logging complete.')
 		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
   
@@ -116,22 +116,4 @@ def run_training_loop(
 		.format(n_iter, int(time.time()-start_time+1)))
 
 if __name__ == '__main__':
-	# params = {
-	#	'history': 3,
-	# 	'n_layers': 8,
-	# 	'filters': 128,
-	# 	'head_filters': 16,
-	# 	'learning_rate': 1e-3,
-	# 	'weight_decay': 1e-4,
-	# 	'sim_count': 800,
-	# 	'ep_count': 64,
-	# 	'epochs': 4,
-	# 	'batch_size': 1024,
-	# 	'step_size': 128,
-	# 	'buffer_size': 20,
-	# 	'td_epsilon': 0,
-	# 	'seed': 0,
-	# 	'start_iter': 0,
-	# 	'n_iter': 50
-	# }
 	main(vars(args))
