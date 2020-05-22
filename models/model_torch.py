@@ -62,7 +62,7 @@ class Agent():
 		self.nnet = Model(
 			n_layers, depth, filters, head_filters,
 			height, width, ac_dim).to(device)
-		self.p_loss = nn.CrossEntropyLoss()
+		self.p_loss = nn.KLDivLoss()
 		self.v_loss = nn.MSELoss()
 		self.opt = optim.Adam(self.nnet.parameters(), lr=lr, weight_decay=c)
 		self.device = device
@@ -78,7 +78,7 @@ class Agent():
 	def update(self, s, pi, z):
 		self.opt.zero_grad()
 		ps, vs = self.nnet(torch.from_numpy(s.astype(np.float32)).to(self.device))
-		p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
+		p_loss = self.p_loss(torch.log(ps), torch.from_numpy(pi).to(self.device))
 		v_loss = self.v_loss(vs, torch.from_numpy(z.astype(np.float32)).to(self.device))
 		if self.device.type == 'cuda':
 			self.scaler.scale(p_loss).backward(retain_graph=True)
