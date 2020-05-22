@@ -30,14 +30,17 @@ args = parser.parse_args()
 if args.framework == 'tf':
 	import tensorflow as tf
 	tf.random.set_seed(args.seed)
-	from models.model_tf import Agent
 	device = None
 else:
 	import torch
 	torch.manual_seed(args.seed)
-	from models.model_torch import Agent
-	device = torch.device(
-		'cuda' if (torch.cuda.is_available() and not args.cpu) else 'cpu')
+	if torch.cuda.is_available() and not args.cpu:
+		torch.backends.cudnn.enabled = True
+    	torch.backends.cudnn.benchmark = True
+    	device = torch.device('cuda')
+    else:
+    	device = torch.device('cpu')
+exec('from models.model_{} import Agent'.format(args.framework))
 exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.game))
 path = args.log_dir
 Path(path).mkdir(parents=True, exist_ok=True)
@@ -83,6 +86,8 @@ def run_training_loop(
 	for i in range(start_iter, start_iter + n_iter):
 		print('\n====================Iter {}===================='.format(i))
 		print('Self-playing {} episodes...'.format(ep_count))
+		if args.framework == 'torch':
+			agent.nnet.eval()
 		print('Black: {}, White: {}, Draw: {}'.format(
 			*self_play(
 				a_ep_count=ep_count, a_sim_count=sim_count, a_tau=1,
@@ -91,6 +96,8 @@ def run_training_loop(
 		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
 	
 		print('\nUpdating parameters...')
+		if args.framework == 'torch':
+			agent.nnet.train()
 		loss = np.mean([agent.update(*sample) \
 			for sample in rb.sample(epochs, batch_size, step_size)])
 		with open('{}/loss{}.txt'.format(path, '_td' if td else ''), 'a') as file:
@@ -103,6 +110,8 @@ def run_training_loop(
 		rb.save(i)
 
 		print('\nLogging sample match...')
+		if args.framework == 'torch':
+			agent.nnet.eval()
 		with open('{}/{:03d}/sample_match{}.txt' \
 				.format(path, i, '_td' if td else ''), 'w') as file:
 			self_play(

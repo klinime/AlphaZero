@@ -73,7 +73,8 @@ class Agent():
 		summary(self.nnet, input_size=(depth, height, width))
 
 	def forward(self, s):
-		ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
+		with torch.no_grad():
+			ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
 		return ps.data.cpu().numpy().flatten(), vs.data.cpu().numpy().flatten()
 
 	def update(self, s, pi, z):
