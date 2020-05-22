@@ -36,10 +36,10 @@ else:
 	torch.manual_seed(args.seed)
 	if torch.cuda.is_available() and not args.cpu:
 		torch.backends.cudnn.enabled = True
-    	torch.backends.cudnn.benchmark = True
-    	device = torch.device('cuda')
-    else:
-    	device = torch.device('cpu')
+		torch.backends.cudnn.benchmark = True
+		device = torch.device('cuda')
+	else:
+		device = torch.device('cpu')
 exec('from models.model_{} import Agent'.format(args.framework))
 exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.game))
 path = args.log_dir
