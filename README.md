@@ -1,5 +1,5 @@
 # AlphaZero
-----
+
 C++ & Cython based efficient and extendable implementation of AlphaZero based on Deepmind's papers [Mastering the game of Go without Human Knowledge](https://deepmind.com/research/publications/mastering-game-go-without-human-knowledge) and [A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play](https://deepmind.com/research/publications/general-reinforcement-learning-algorithm-masters-chess-shogi-and-go-through-self-play). Tensorflow 2.x and PyTorch implementations available.
 
 ## Dependencies
@@ -13,10 +13,13 @@ C++ & Cython based efficient and extendable implementation of AlphaZero based on
 
 Install dependencies with conda environment (optional but strongly recommended) and pip.
 ```sh
+$ git clone https://github.com/klinime/AlphaZero.git
+$ cd AlphaZero
 $ conda create -n az_env python=3.7
-$ source activate az_env
+$ conda activate az_env
 $ pip install -r requirements.txt
 ```
+```conda deactivate``` when finished and ```conda activate az_env``` to run again.
 
 ## Build Extension and Demo
 To create the c++ and cython extensions, run ```python setup.py build``` which creates a build directory with the shared libraries ready to be imported. To get a sense of how to use the libraries, take a look at ```othello_demo.py``` or run ```
@@ -24,7 +27,7 @@ python othello_demo.py``` to see the code in action.
 
 ## Extend Existing Games
 This project is built with extendability in mind. To run with custom game models:
-1. Create game logic in ```games``` directory,  ```{game}.cpp``` and ```{game}.hpp``` files with the class name ```Game``` extending ```base::Game``` from ```"mcts.hpp"```. See ```games/othello.cpp``` and ```games/othello.hpp``` for example.
+1. Create game logic under ```games``` directory, in  ```{game}.cpp``` and ```{game}.hpp``` files, with the class name ```Game``` extending ```base::Game``` from ```"mcts.hpp"```. See ```games/othello.cpp``` and ```games/othello.hpp``` for example.
 2. Create a copy of ```cy_mcts.pyx``` in ```mcts``` directory, replace ```cdef extern from "mcts.hpp" namespace "base"``` with ```cdef extern from "../games/{game}.hpp" namespace "{game}"```, and rename the pyx file as ```cy_{game}.pyx```. See ```mcts/cy_othello.pyx``` for example.
 3. Append game name at the end of ```sources.txt```
 4. Run ```python setup.py build``` to build the new extension. The ```build``` directory, ```cy_{game}.<platform>.so```, and  ```mcts/cy_{game}.cpp``` files should be created.
