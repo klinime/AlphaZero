@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn, optim
 from torchsummary import summary
+from pathlib import Path
 
 class Residual(nn.Module):
 	def __init__(self, in_planes, out_planes, kernel_size):
@@ -89,9 +90,10 @@ class Agent():
 			p_loss.backward()
 			v_loss.backward()
 			self.opt.step()
-		return np.mean([p_loss.item(), v_loss.item()])
+		return p_loss.item() + v_loss.item()
 
 	def save(self, i):
+		Path('{}/{:03d}'.format(self.path, i)).mkdir(exist_ok=True)
 		file = '{}/{:03d}/model{}.pth'.format(self.path, i,
 			'_td' if self.td else '')
 		torch.save({
