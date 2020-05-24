@@ -61,14 +61,15 @@ namespace othello {
     int Game::board_height() { return  8; }
     int Game::board_width()  { return  8; }
     int Game::ac_dim()       { return 65; }
-    int Game::state_depth()  { return  3; }
+    int Game::state_depth()  { return  2; }
+	int Game::const_depth()  { return  1; }
     
     std::vector<uint8_t> Game::get_state() {
         if (this->m_state_init) {
             return this->m_state;
         }
         
-        std::vector<uint8_t> state(3 * 64);
+        std::vector<uint8_t> state(2 * 64);
         uint64_t b_board = this->m_b_board;
         uint64_t occupied = b_board | this->m_w_board;
         int i = 63;
@@ -89,13 +90,15 @@ namespace othello {
             b_board  >>= 1;
             occupied >>= 1;
         }
-        if (this->m_turn & 1) {
-            std::fill_n(state.begin() + 2 * 64, 64, 1);
-        }
         this->m_state = state;
         this->m_state_init = 1;
         return state;
     }
+	
+	std::vector<uint8_t> Game::get_const() {
+		std::vector<uint8_t> const_vec(64, this->m_turn & 1);
+		return const_vec;
+	}
     
     // reference: https://gist.github.com/davidrobles/4042418
     std::vector<uint16_t> Game::get_action() {

@@ -15,12 +15,14 @@ namespace base {
         virtual int board_width()  { return 0; }
         virtual int ac_dim()       { return 0; }
         virtual int state_depth()  { return 0; }
-        virtual std::vector<uint8_t> get_state() { return std::vector<uint8_t>(); };
-        virtual std::vector<uint16_t> get_action()
-        { return std::vector<uint16_t>(); };
-        virtual std::unique_ptr<Game> take_action(uint16_t idx) { return nullptr; };
-        virtual int terminal() { return 0; };
-        virtual int evaluate() { return 0; };
+		virtual int const_depth()  { return 0; }
+        virtual std::vector<uint8_t> get_state() { return std::vector<uint8_t>(); }
+		virtual std::vector<uint8_t> get_const() { return std::vector<uint8_t>(); }
+		virtual std::vector<uint16_t> get_action()
+        { return std::vector<uint16_t>(); }
+        virtual std::unique_ptr<Game> take_action(uint16_t idx) { return nullptr; }
+        virtual int terminal() { return 0; }
+        virtual int evaluate() { return 0; }
         virtual std::string state_str() { return std::string(); }
         virtual std::vector<std::string> action_str()
         { return std::vector<std::string>(); }

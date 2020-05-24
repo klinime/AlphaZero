@@ -29,7 +29,9 @@ cdef extern from "../games/othello.hpp" namespace "othello" nogil:
         int board_width()
         int ac_dim()
         int state_depth()
+        int const_depth()
         vector[uint8_t] get_state()
+        vector[uint8_t] get_const()
         vector[uint16_t] get_action()
         unique_ptr[Game] take_action(uint16_t)
         int terminal()
@@ -55,10 +57,10 @@ cdef extern from "mcts.hpp" namespace "mcts" nogil:
     void backprop(vector[shared_ptr[Node]]&, vector[shared_ptr[Node]]&,
                   vector[float]&, vector[float]&)
 
-cpdef (int, int, int, int) get_game_details():
+cpdef (int, int, int, int, int) get_game_details():
     cdef unique_ptr[Game] game = make_unique[Game]()
     return deref(game).board_height(), deref(game).board_width(), \
-        deref(game).ac_dim(), deref(game).state_depth()
+        deref(game).ac_dim(), deref(game).state_depth(), deref(game).const_depth()
 
 ##############################################################################
 ############################### Replay Buffer ################################
@@ -236,21 +238,30 @@ cdef str log_stats(Node node):
 
 cdef np.ndarray[np.float32_t, ndim=4] tree_tonumpy(
         vector[vector[uint8_t]] states, int history,
-        int state_depth, int board_height, int board_width):
+        int state_depth, int const_depth, int board_height, int board_width):
     # convert vectors generated from tree's get_eval_states to ndarrays
     cdef:
-        np.ndarray[np.uint8_t, ndim=2] state_arr = np.empty(
-            (states.size(), state_depth * board_height * board_width), dtype=np.uint8)
+        np.ndarray[np.uint8_t, ndim=4] state_arr = np.empty(
+            (states.size() / (history + 1),
+            history * state_depth + const_depth,
+            board_height, board_width), dtype=np.uint8)
         uint8_t[::1] state_view
+        int depth, idx
         int i
     
     i = states.size() - 1
     while (i >= 0):
-        state_view = <uint8_t[:state_depth * board_height * board_width]> states[i].data()
-        state_arr[i] = np.asarray(state_view)
+        if (i % (history + 1) == history):
+            depth = const_depth
+            idx = history * state_depth
+        else:
+            depth = state_depth
+            idx = (i % (history + 1)) * state_depth
+        state_view = <uint8_t[:depth * board_height * board_width]> states[i].data()
+        state_arr[i / (history + 1), idx : idx + depth] = \
+            np.asarray(state_view).reshape((depth, board_height, board_width))
         i -= 1
-    return state_arr.reshape((states.size() / history, history * state_depth, 
-                              board_height, board_width)).astype(np.float32)
+    return state_arr.astype(np.float32)
 
 cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
                  int tau, eval_func, float c_puct, float alpha, float epsilon,
@@ -274,6 +285,7 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         int board_width = deref(deref(trees[0]).m_game).board_width()
         int ac_dim = deref(deref(trees[0]).m_game).ac_dim()
         int state_depth = deref(deref(trees[0]).m_game).state_depth()
+        int const_depth = deref(deref(trees[0]).m_game).const_depth()
         int idx
         int i, j
     
@@ -283,7 +295,7 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         select(trees, chosen, tau, c_puct, alpha, epsilon, cutoff)
         if (eval_func is not None):
             priors, values = eval_func(tree_tonumpy(get_eval_states(chosen, history),
-                history, state_depth, board_height, board_width))
+                history, state_depth, const_depth, board_height, board_width))
             # directly access array memory and assign to vector
             prior.assign(&priors[0], &priors[0] + trees.size() * ac_dim)
             value.assign(&values[0], &values[0] + trees.size())
@@ -316,17 +328,21 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         
         # save to replay_buffer
         if (save & (deref(deref(child).m_game).get_turn() >= history)):
-            state = deref(deref(child).m_game).get_state()
+            state = deref(deref(child).m_game).get_const()
             # copies vector to array (prevent corruption)
             s = np.ascontiguousarray(state, dtype=np.uint8) \
-                .reshape((state_depth, board_height, board_width))
+                .reshape((1, board_height, board_width))
+            state = deref(deref(child).m_game).get_state()
+            # directly access vector memory
+            state_view = <uint8_t[:state.size()]> state.data()
+            # since concatenate creates a copy anyways
+            s = np.concatenate((np.asarray(state_view).reshape(
+                (state_depth, board_height, board_width)), s))
             j = state_depth - 1
             while (j):
                 child = deref(child).m_parent.lock()
                 state = deref(deref(child).m_game).get_state()
-                # directly access vector memory
                 state_view = <uint8_t[:state.size()]> state.data()
-                # since concatenate creates a copy anyways
                 s = np.concatenate((np.asarray(state_view).reshape(
                     (state_depth, board_height, board_width)), s))
                 j -= 1

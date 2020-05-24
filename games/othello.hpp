@@ -13,7 +13,9 @@ namespace othello {
         int board_width();
         int ac_dim();
         int state_depth();
+		int const_depth();
         std::vector<uint8_t> get_state();
+		std::vector<uint8_t> get_const();
         std::vector<uint16_t> get_action();
         std::unique_ptr<base::Game> take_action(uint16_t);
         int terminal();

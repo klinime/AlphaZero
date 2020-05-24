@@ -36,12 +36,13 @@ namespace mcts {
     std::vector<std::vector<uint8_t>> get_eval_states(
             std::vector<std::shared_ptr<Node>> &chosen, int history) {
         // stack history amount of states
-        std::vector<std::vector<uint8_t>> states(chosen.size() * history);
+        std::vector<std::vector<uint8_t>> states(chosen.size() * (history + 1));
         for (size_t i = 0; i < chosen.size(); ++i) {
             auto t = chosen[i];
+			states[(i + 1) * (history + 1) - 1] = t->m_game->get_const();
             int offset = history - 1;
             while (offset >= 0 && t) {
-                states[i * history + offset] = t->m_game->get_state();
+                states[i * (history + 1) + offset] = t->m_game->get_state();
                 t = t->m_parent.lock();
                 --offset;
             }
@@ -51,7 +52,7 @@ namespace mcts {
                     chosen[0]->m_game->state_depth();
                 std::vector<uint8_t> state(size);
                 while (offset >= 0) {
-                    states[i * history + offset] = state;
+                    states[i * (history + 1) + offset] = state;
                     --offset;
                 }
             }

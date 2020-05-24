@@ -2,21 +2,21 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Dense, Conv2D, \
+from tensorflow.keras.layers import Dense, Conv2D, ReLU, \
 	BatchNormalization, ReLU, Flatten, Layer, Input
 from tensorflow.keras.regularizers import l2
 
-def residual(x, name, filters, kernel_size, c, upscale=False):
+def residual(x, name, filters, kernel_size, c):
 	res = Conv2D(
 		filters,
 		kernel_size,
 		padding='same',
 		data_format='channels_first',
-		activation='relu',
 		use_bias=False,
 		kernel_regularizer=l2(c),
 		name=name+'_conv0')(x)
 	res = BatchNormalization(name=name+'_bn0')(res)
+	res = ReLU(name=name+'_relu0')(res)
 	res = Conv2D(
 		filters,
 		kernel_size,
@@ -25,25 +25,24 @@ def residual(x, name, filters, kernel_size, c, upscale=False):
 		use_bias=False,
 		kernel_regularizer=l2(c),
 		name=name+'_conv1')(res)
-	if upscale:
-		x = Conv2D(
-			filters,
-			1,
-			padding='same',
-			data_format='channels_first',
-			use_bias=False,
-			kernel_regularizer=l2(c),
-			name=name+'_match')(x)
-	x = ReLU()(x + res)
-	x = BatchNormalization(name=name+'_bn1')(x)
-	return x
+	res = BatchNormalization(name=name+'_bn1')(res)
+	return ReLU(name=name+'_relu1')(x + res)
 
 def init_model(name, layers, filters, head_filters, c,
 			   height, width, ac_dim, depth):
 	s = Input(shape=(depth, height, width),
 			  dtype='float32', name='state')
-	x = residual(s, 'res0', filters, 3, c, upscale=True)
-	for i in range(1, layers):
+	x = Conv2D(
+		filters,
+		3,
+		padding='same',
+		data_format='channels_first',
+		use_bias=False,
+		kernel_regularizer=l2(c),
+		name='conv')(s)
+	x = BatchNormalization(name='bn')(x)
+	x = ReLU(name='relu')(x)
+	for i in range(layers):
 		x = residual(x, 'res{}'.format(i), filters, 3, c)
 
 	p = Conv2D(
@@ -51,11 +50,11 @@ def init_model(name, layers, filters, head_filters, c,
 		3,
 		padding='same',
 		data_format='channels_first',
-		activation='relu',
 		use_bias=False, 
 		kernel_regularizer=l2(c),
 		name='p_conv')(x)
 	p = BatchNormalization(name='p_bn')(p)
+	p = ReLU(name='p_relu')(p)
 	p = Flatten(name='p_flatten')(p)
 	p = Dense(ac_dim, activation='softmax',
 		kernel_regularizer=l2(c), name='policy')(p)
@@ -65,11 +64,11 @@ def init_model(name, layers, filters, head_filters, c,
 		3,
 		padding='same',
 		data_format='channels_first',
-		activation='relu',
 		use_bias=False,
 		kernel_regularizer=l2(c),
 		name='v_conv')(x)
 	v = BatchNormalization(name='v_bn')(v)
+	v = ReLU(name='v_relu')(v)
 	v = Flatten(name='v_flatten')(v)
 	v = Dense(256, activation='relu', kernel_regularizer=l2(c), name='v_dense')(v)
 	v = Dense(1, activation='tanh', kernel_regularizer=l2(c), name='value')(v)

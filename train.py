@@ -47,11 +47,12 @@ exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.g
 def main():
 	np.random.seed(args.seed)
 	Path(args.log_dir).mkdir(parents=True, exist_ok=True)
-	board_height, board_width, ac_dim, state_depth = get_game_details()
+	board_height, board_width, ac_dim, state_depth, const_depth = get_game_details()
 	agent = Agent(
 		args.log_dir, args.layers, args.filters, args.head_filters,
 		args.weight_decay, board_height, board_width, ac_dim,
-		state_depth * args.history, args.learning_rate, args.td_epsilon, device)
+		args.history * state_depth + const_depth,
+		args.learning_rate, args.td_epsilon, device)
 	rb = ReplayBuffer(args.log_dir, args.history, args.buffer_size, args.td_epsilon)
 	if args.start_iter > 0:
 		agent.load(args.start_iter-1)

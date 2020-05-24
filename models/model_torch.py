@@ -6,54 +6,51 @@ from torchsummary import summary
 from pathlib import Path
 
 class Residual(nn.Module):
-	def __init__(self, in_planes, out_planes, kernel_size):
+	def __init__(self, filters, kernel_size):
 		super(Residual, self).__init__()
-		self.upscale = None if in_planes == out_planes else \
-			nn.Conv2d(in_planes, out_planes, 1, bias=False)
 		self.conv1 = nn.Conv2d(
-			in_planes, out_planes, kernel_size,
+			filters, filters, kernel_size,
 			padding=kernel_size//2, bias=False)
+		self.bn1 = nn.BatchNorm2d(filters)
 		self.relu1 = nn.ReLU(inplace=True)
-		self.bn1 = nn.BatchNorm2d(out_planes)
 		self.conv2 = nn.Conv2d(
-			out_planes, out_planes, kernel_size,
+			filters, filters, kernel_size,
 			padding=kernel_size//2, bias=False)
+		self.bn2 = nn.BatchNorm2d(filters)
 		self.relu2 = nn.ReLU(inplace=True)
-		self.bn2 = nn.BatchNorm2d(out_planes)
 
 	def forward(self, x):
-		out = self.bn1(self.relu1(self.conv1(x)))
-		if self.upscale:
-			x = self.upscale(x)
-		return self.bn2(self.relu2(x + self.conv2(out)))
+		out = self.bn2(self.conv2(self.relu1(self.bn1(self.conv1(x)))))
+		return self.relu2(x + out)
 
 class Model(nn.Module):
 	def __init__(self, layers, in_planes, out_planes,
 				 head_planes, height, width, ac_dim):
 		super(Model, self).__init__()
-		self.res_layers = nn.Sequential(*([Residual(in_planes, out_planes, 3)] + \
-			[Residual(out_planes, out_planes, 3) for _ in range(1, layers)]))
+		self.conv = nn.Conv2d(in_planes, out_planes, 3, padding=1, bias=False)
+		self.bn = nn.BatchNorm2d(out_planes)
+		self.relu = nn.ReLU(inplace=True)
+		self.res_layers = nn.Sequential(*(
+			[Residual(out_planes, 3) for _ in range(layers)]))
 		self.p_conv = nn.Conv2d(out_planes, head_planes, 3, padding=1, bias=False)
-		self.p_relu = nn.ReLU(inplace=True)
 		self.p_bn = nn.BatchNorm2d(head_planes)
+		self.p_relu = nn.ReLU(inplace=True)
 		self.p_flatten = nn.Flatten()
 		self.policy = nn.Linear(height * width * head_planes, ac_dim)
-		self.p_out = nn.Softmax(dim=1)
 		self.v_conv = nn.Conv2d(out_planes, head_planes * 2, 3, padding=1, bias=False)
-		self.v_relu = nn.ReLU(inplace=True)
 		self.v_bn = nn.BatchNorm2d(head_planes * 2)
+		self.v_relu = nn.ReLU(inplace=True)
 		self.v_flatten = nn.Flatten()
 		self.v_linear = nn.Linear(height * width * head_planes * 2, 256)
 		self.v_linrelu = nn.ReLU(inplace=True)
 		self.value = nn.Linear(256, 1)
-		self.v_out = nn.Tanh()
+		self.v_tanh = nn.Tanh()
 
 	def forward(self, x):
-		x = self.res_layers(x)
-		p = self.p_flatten(self.p_bn(self.p_relu(self.p_conv(x))))
-		p = self.p_out(self.policy(p))
-		v = self.v_flatten(self.v_bn(self.v_relu(self.v_conv(x))))
-		v = self.v_out(self.value(self.v_linrelu(self.v_linear(v))))
+		x = self.res_layers(self.relu(self.bn(self.conv(x))))
+		p = self.policy(self.p_flatten(self.p_relu(self.p_bn(self.p_conv(x)))))
+		v = self.v_flatten(self.v_relu(self.v_bn(self.v_conv(x))))
+		v = self.v_tanh(self.value(self.v_linrelu(self.v_linear(v))))
 		return p, v
 
 class Agent():
@@ -75,12 +72,14 @@ class Agent():
 	def forward(self, s):
 		with torch.no_grad():
 			ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
+			ps = nn.functional.softmax(ps, dim=1)
 		return ps.data.cpu().numpy().flatten(), vs.data.cpu().numpy().flatten()
 
 	def update(self, s, pi, z):
 		self.opt.zero_grad()
 		ps, vs = self.nnet(torch.from_numpy(s.astype(np.float32)).to(self.device))
-		p_loss = self.p_loss(torch.log(ps), torch.from_numpy(pi).to(self.device))
+		ps = nn.functional.log_softmax(ps, dim=1)
+		p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
 		v_loss = self.v_loss(vs, torch.from_numpy(z.astype(np.float32)).to(self.device))
 		if self.device.type == 'cuda':
 			self.scaler.scale(p_loss).backward(retain_graph=True)
