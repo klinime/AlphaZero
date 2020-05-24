@@ -29,80 +29,80 @@ parser.add_argument('--log-match', action='store_true', default=False)
 args = parser.parse_args()
 
 if args.framework == 'tf':
-	import tensorflow as tf
-	tf.random.set_seed(args.seed)
-	device = None
+    import tensorflow as tf
+    tf.random.set_seed(args.seed)
+    device = None
 else:
-	import torch
-	torch.manual_seed(args.seed)
-	if torch.cuda.is_available() and not args.cpu:
-		torch.backends.cudnn.enabled = True
-		torch.backends.cudnn.benchmark = True
-		device = torch.device('cuda')
-	else:
-		device = torch.device('cpu')
+    import torch
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available() and not args.cpu:
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 exec('from models.model_{} import Agent'.format(args.framework))
 exec('from cy_{} import self_play, get_game_details, ReplayBuffer'.format(args.game))
 
 def main():
-	np.random.seed(args.seed)
-	Path(args.log_dir).mkdir(parents=True, exist_ok=True)
-	board_height, board_width, ac_dim, state_depth, const_depth = get_game_details()
-	agent = Agent(
-		args.log_dir, args.layers, args.filters, args.head_filters,
-		args.weight_decay, board_height, board_width, ac_dim,
-		args.history * state_depth + const_depth,
-		args.learning_rate, args.td_epsilon, device)
-	rb = ReplayBuffer(args.log_dir, args.history, args.buffer_size, args.td_epsilon)
-	if args.start_iter > 0:
-		agent.load(args.start_iter-1)
-		rb.load(args.start_iter-1)
-	run_training_loop(agent, rb)
+    np.random.seed(args.seed)
+    Path(args.log_dir).mkdir(parents=True, exist_ok=True)
+    board_height, board_width, ac_dim, state_depth, const_depth = get_game_details()
+    agent = Agent(
+        args.log_dir, args.layers, args.filters, args.head_filters,
+        args.weight_decay, board_height, board_width, ac_dim,
+        args.history * state_depth + const_depth,
+        args.learning_rate, args.td_epsilon, device)
+    rb = ReplayBuffer(args.log_dir, args.history, args.buffer_size, args.td_epsilon)
+    if args.start_iter > 0:
+        agent.load(args.start_iter-1)
+        rb.load(args.start_iter-1)
+    run_training_loop(agent, rb)
 
 def run_training_loop(agent, rb):
-	start_time = time.time()
-	for i in range(args.start_iter, args.start_iter + args.n_iter):
-		print('\n====================Iter {}===================='.format(i))
-		print('Self-playing {} episodes...'.format(args.ep_count))
-		if args.framework == 'torch':
-			agent.nnet.eval()
-		print('Black: {}, White: {}, Draw: {}'.format(
-			*self_play(
-				a_ep_count=args.ep_count, a_sim_count=args.sim_count, a_tau=1,
-				eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-				rb=rb, a_td=args.td_epsilon, a_save=1, a_log=0, file=None)))
-		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
-	
-		print('\nUpdating parameters...')
-		if args.framework == 'torch':
-			agent.nnet.train()
-		loss = np.mean([agent.update(*sample) \
-			for sample in rb.sample(args.epochs, args.batch_size, args.step_size)])
-		with open('{}/loss{}.txt'.format(
-				args.log_dir, '_td' if args.td_epsilon else ''), 'a') as file:
-			file.write('\n{}'.format(loss))
-		print('Loss: {:.3f}'.format(loss))
-		print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
+    start_time = time.time()
+    for i in range(args.start_iter, args.start_iter + args.n_iter):
+        print('\n====================Iter {}===================='.format(i))
+        print('Self-playing {} episodes...'.format(args.ep_count))
+        if args.framework == 'torch':
+            agent.nnet.eval()
+        print('Black: {}, White: {}, Draw: {}'.format(
+            *self_play(
+                a_ep_count=args.ep_count, a_sim_count=args.sim_count, a_tau=1,
+                eval_func_p1=agent.forward, eval_func_p2=agent.forward,
+                rb=rb, a_td=args.td_epsilon, a_save=1, a_log=0, file=None)))
+        print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
+    
+        print('\nUpdating parameters...')
+        if args.framework == 'torch':
+            agent.nnet.train()
+        loss = np.mean([agent.update(*sample) \
+            for sample in rb.sample(args.epochs, args.batch_size, args.step_size)])
+        with open('{}/loss{}.txt'.format(
+                args.log_dir, '_td' if args.td_epsilon else ''), 'a') as file:
+            file.write('\n{}'.format(loss))
+        print('Loss: {:.3f}'.format(loss))
+        print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
 
-		rb.mark_end(i)
-		agent.save(i)
-		rb.save(i)
+        rb.mark_end(i)
+        agent.save(i)
+        rb.save(i)
 
-		if args.log_match:
-			print('\nLogging sample match...')
-			if args.framework == 'torch':
-				agent.nnet.eval()
-			with open('{}/{:03d}/sample_match{}.txt'.format(
-					args.log_dir, i, '_td' if args.td_epsilon else ''), 'w') as file:
-				self_play(
-					a_ep_count=1, a_sim_count=args.sim_count, a_tau=0,
-					eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-					rb=rb, a_td=0, a_save=0, a_log=1, file=file)
-			print('Logging complete.')
-			print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
+        if args.log_match:
+            print('\nLogging sample match...')
+            if args.framework == 'torch':
+                agent.nnet.eval()
+            with open('{}/{:03d}/sample_match{}.txt'.format(
+                    args.log_dir, i, '_td' if args.td_epsilon else ''), 'w') as file:
+                self_play(
+                    a_ep_count=1, a_sim_count=args.sim_count, a_tau=0,
+                    eval_func_p1=agent.forward, eval_func_p2=agent.forward,
+                    rb=rb, a_td=0, a_save=0, a_log=1, file=file)
+            print('Logging complete.')
+            print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
   
-	print('\nLoop completed with {} iterations. Total time elapsed: {}s.' \
-		.format(args.n_iter, int(time.time()-start_time+1)))
+    print('\nLoop completed with {} iterations. Total time elapsed: {}s.' \
+        .format(args.n_iter, int(time.time()-start_time+1)))
 
 if __name__ == '__main__':
-	main()
+    main()

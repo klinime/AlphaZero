@@ -39,7 +39,7 @@ namespace mcts {
         std::vector<std::vector<uint8_t>> states(chosen.size() * (history + 1));
         for (size_t i = 0; i < chosen.size(); ++i) {
             auto t = chosen[i];
-			states[(i + 1) * (history + 1) - 1] = t->m_game->get_const();
+            states[(i + 1) * (history + 1) - 1] = t->m_game->get_const();
             int offset = history - 1;
             while (offset >= 0 && t) {
                 states[i * (history + 1) + offset] = t->m_game->get_state();

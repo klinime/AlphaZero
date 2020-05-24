@@ -62,7 +62,7 @@ namespace othello {
     int Game::board_width()  { return  8; }
     int Game::ac_dim()       { return 65; }
     int Game::state_depth()  { return  2; }
-	int Game::const_depth()  { return  1; }
+    int Game::const_depth()  { return  1; }
     
     std::vector<uint8_t> Game::get_state() {
         if (this->m_state_init) {
@@ -94,11 +94,11 @@ namespace othello {
         this->m_state_init = 1;
         return state;
     }
-	
-	std::vector<uint8_t> Game::get_const() {
-		std::vector<uint8_t> const_vec(64, this->m_turn & 1);
-		return const_vec;
-	}
+    
+    std::vector<uint8_t> Game::get_const() {
+        std::vector<uint8_t> const_vec(64, this->m_turn & 1);
+        return const_vec;
+    }
     
     // reference: https://gist.github.com/davidrobles/4042418
     std::vector<uint16_t> Game::get_action() {
