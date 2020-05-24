@@ -330,15 +330,15 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
         if (save & (deref(deref(child).m_game).get_turn() >= history)):
             state = deref(deref(child).m_game).get_const()
             # copies vector to array (prevent corruption)
-            s = np.ascontiguousarray(state, dtype=np.uint8).reshape(
-                (const_depth, board_height, board_width))
+            s = np.ascontiguousarray(state, dtype=np.uint8) \
+                .reshape((1, board_height, board_width))
             state = deref(deref(child).m_game).get_state()
             # directly access vector memory
             state_view = <uint8_t[:state.size()]> state.data()
             # since concatenate creates a copy anyways
             s = np.concatenate((np.asarray(state_view).reshape(
                 (state_depth, board_height, board_width)), s))
-            j = state_depth - 1
+            j = history - 1
             while (j):
                 child = deref(child).m_parent.lock()
                 state = deref(deref(child).m_game).get_state()
