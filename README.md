@@ -93,6 +93,10 @@ To train on a game, run ```train.py``` with the following arguments:
 * ```batch-size```: batch size to sample from replay buffer
 * ```step-size```: update batch in step size chunks
 * ```buffer-size```: number of iterations to keep in replay buffer
+* ```c-puct```: polynomial upper confidence tree coefficient
+* ```alpha```: dirichlet noise parameter
+* ```epsilon```: dirichlet noise weighted average
+* ```cutoff```: turn cutoff to start playing without exploration
 * ```seed```: random seed. Note: running on GPU is not deterministic.
 * ```start-iter```: starting iteration; loads model and replay buffer if not zero
 * ```n-iter```: number of iterations to train

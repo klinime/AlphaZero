@@ -19,6 +19,10 @@ parser.add_argument('-epo', '--epochs', type=int, default=1)
 parser.add_argument('-b',   '--batch-size', type=int, default=4096)
 parser.add_argument('-s',   '--step-size', type=int, default=128)
 parser.add_argument('-buf', '--buffer-size', type=int, default=20)
+parser.add_argument('-cp',  '--c-puct', type=float, default=2.5)
+parser.add_argument('-a',   '--alpha', type=float, default=0.03)
+parser.add_argument('-eps', '--epsilon', type=float, default=0.25)
+parser.add_argument('-cut', '--cutoff', type=int, default=30)
 parser.add_argument('-td',  '--td-epsilon', type=float, default=0)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--start-iter', type=int, default=0)
@@ -70,7 +74,8 @@ def run_training_loop(agent, rb):
             *self_play(
                 a_ep_count=args.ep_count, a_sim_count=args.sim_count, a_tau=1,
                 eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-                rb=rb, a_td=args.td_epsilon, a_save=1, a_log=0, file=None)))
+                rb=rb, a_c_puct=args.c_puct, a_alpha=args.alpha, a_epsilon=args.epsilon,
+                a_cutoff=args.cutoff, a_td=args.td_epsilon, a_save=1, a_log=0, file=None)))
         print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
     
         print('\nUpdating parameters...')
@@ -97,7 +102,8 @@ def run_training_loop(agent, rb):
                 self_play(
                     a_ep_count=1, a_sim_count=args.sim_count, a_tau=0,
                     eval_func_p1=agent.forward, eval_func_p2=agent.forward,
-                    rb=rb, a_td=0, a_save=0, a_log=1, file=file)
+                    rb=rb, a_c_puct=args.c_puct, a_alpha=args.alpha, a_epsilon=args.epsilon,
+                    a_cutoff=args.cutoff, a_td=args.td_epsilon, a_save=0, a_log=1, file=file)
             print('Logging complete.')
             print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
   
