@@ -1,7 +1,11 @@
 
 from cy_othello import ReplayBuffer, self_play
 import numpy as np
+import pandas as pd
 import time
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
 
 if __name__ == '__main__':
     def greedy(state):

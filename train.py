@@ -1,8 +1,12 @@
 
 import argparse
 import numpy as np
+import pandas as pd
 from pathlib import Path
 import time
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
 
 parser = argparse.ArgumentParser(description='AlphaZero Training')
 parser.add_argument('--framework', choices=('tf', 'torch'), required=True)
@@ -61,9 +65,13 @@ def main():
     if args.start_iter > 0:
         agent.load(args.start_iter-1)
         rb.load(args.start_iter-1)
-    run_training_loop(agent, rb)
+        loss_df = pd.read_csv('{}/loss{}.csv'.format(
+            args.log_dir, '_td' if args.td_epsilon else ''))
+    else:
+        loss_df = pd.DataFrame({'loss' : []})
+    run_training_loop(agent, rb, loss_df)
 
-def run_training_loop(agent, rb):
+def run_training_loop(agent, rb, loss_df):
     start_time = time.time()
     for i in range(args.start_iter, args.start_iter + args.n_iter):
         print('\n====================Iter {}===================='.format(i))
@@ -83,9 +91,9 @@ def run_training_loop(agent, rb):
             agent.nnet.train()
         loss = np.mean([agent.update(*sample) \
             for sample in rb.sample(args.epochs, args.batch_size, args.step_size)])
-        with open('{}/loss{}.txt'.format(
-                args.log_dir, '_td' if args.td_epsilon else ''), 'a') as file:
-            file.write('\n{}'.format(loss))
+        loss_df.loc[i] = loss
+        df.to_csv('{}/loss{}.csv'.format(
+            args.log_dir, '_td' if args.td_epsilon else ''), index=False)
         print('Loss: {:.3f}'.format(loss))
         print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
 
