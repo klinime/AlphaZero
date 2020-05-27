@@ -92,7 +92,7 @@ def run_training_loop(agent, rb, loss_df):
         loss = np.mean([agent.update(*sample) \
             for sample in rb.sample(args.epochs, args.batch_size, args.step_size)])
         loss_df.loc[i] = loss
-        df.to_csv('{}/loss{}.csv'.format(
+        loss_df.to_csv('{}/loss{}.csv'.format(
             args.log_dir, '_td' if args.td_epsilon else ''), index=False)
         print('Loss: {:.3f}'.format(loss))
         print('Time elapsed: {:.3f}s'.format(time.time()-start_time))
