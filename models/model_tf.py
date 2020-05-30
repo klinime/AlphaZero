@@ -46,7 +46,7 @@ def init_model(name, layers, filters, head_filters, c,
         x = residual(x, 'res{}'.format(i), filters, 3, c)
 
     p = Conv2D(
-        head_filters,
+        head_filters * 2,
         3,
         padding='same',
         data_format='channels_first',
@@ -60,7 +60,7 @@ def init_model(name, layers, filters, head_filters, c,
         kernel_regularizer=l2(c), name='policy')(p)
 
     v = Conv2D(
-        head_filters * 2,
+        head_filters,
         3,
         padding='same',
         data_format='channels_first',
@@ -105,3 +105,4 @@ class Agent():
             '_td' if self.td else '')
         self.nnet = keras.models.load_model(folder)
         print('Model loaded.')
+        return self
