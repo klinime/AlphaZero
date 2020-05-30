@@ -191,7 +191,7 @@ cdef class ReplayBuffer:
         self.s = rb_data["state"]
         self.pi = rb_data["policy"]
         self.z = rb_data["result"]
-        self.idx.extend(rb_data["idx"])
+        self.idx.extend(rb_data["index"])
         print("ReplayBuffer loaded.")
 
 ##############################################################################
