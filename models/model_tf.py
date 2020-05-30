@@ -31,7 +31,7 @@ def residual(x, name, filters, kernel_size, c):
 def init_model(name, layers, filters, head_filters, c,
                height, width, ac_dim, depth):
     s = Input(shape=(depth, height, width),
-              dtype='float32', name='state')
+        dtype='float32', name='state')
     x = Conv2D(
         filters,
         3,
@@ -76,7 +76,7 @@ def init_model(name, layers, filters, head_filters, c,
 
 class Agent():
     def __init__(self, path, layers, filters, head_filters, c,
-            height, width, ac_dim, depth, lr, td, device):
+                 height, width, ac_dim, depth, lr, td, device):
         self.path = path
         self.nnet = init_model(
             'model', layers, filters, head_filters, c,

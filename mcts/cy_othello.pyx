@@ -85,7 +85,7 @@ cdef class ReplayBuffer:
         self.td = td
     
     cpdef void add_history(self, np.ndarray[np.uint8_t, ndim=3] state,
-                                 np.ndarray[np.float32_t, ndim=1] policy, float value):
+                           np.ndarray[np.float32_t, ndim=1] policy, float value):
         # appends state and policy to s and pi, optionally value if td > 0
         cdef:
             np.ndarray[np.uint8_t, ndim=4] s = np.expand_dims(state, axis=0)
@@ -178,27 +178,20 @@ cdef class ReplayBuffer:
     
     cpdef void save(self, int i):
         # save replay buffer at iteration i
-        np.save("{}/{:03d}/state{}.npy" \
-                .format(self.path, i, "_td" if self.td else ""), self.s)
-        np.save("{}/{:03d}/policy{}.npy" \
-                .format(self.path, i, "_td" if self.td else ""), self.pi)
-        np.save("{}/{:03d}/result{}.npy" \
-                .format(self.path, i, "_td" if self.td else ""), self.z)
-        np.save("{}/{:03d}/index{}.npy" \
-                .format(self.path, i, "_td" if self.td else ""),
-                np.array(self.idx, dtype=np.int64))
+        np.savez("{}/{:03d}/replaybuffer{}.npz" \
+            .format(self.path, i, "_td" if self.td else ""),
+            state=self.s, policy=self.pi, result=self.z,
+            index=np.array(self.idx, dtype=np.int64))
         print("ReplayBuffer saved.")
       
     cpdef void load(self, int i=-1):
         # load replay buffer at iteration i
-        self.s = np.load("{}/{:03d}/state{}.npy" \
-                         .format(self.path, i, "_td" if self.td else ""))
-        self.pi = np.load("{}/{:03d}/policy{}.npy" \
-                          .format(self.path, i, "_td" if self.td else ""))
-        self.z = np.load("{}/{:03d}/result{}.npy" \
-                         .format(self.path, i, "_td" if self.td else ""))
-        self.idx.extend(np.load("{}/{:03d}/index{}.npy" \
-                                .format(self.path, i, "_td" if self.td else "")))
+        rb_data = np.load("{}/{:03d}/replaybuffer{}.npz" \
+            .format(self.path, i, "_td" if self.td else ""))
+        self.s = rb_data["state"]
+        self.pi = rb_data["policy"]
+        self.z = rb_data["result"]
+        self.idx.extend(rb_data["idx"])
         print("ReplayBuffer loaded.")
 
 ##############################################################################
@@ -313,8 +306,8 @@ cdef void search(vector[shared_ptr[Node]] &trees, list rbs, int sim_count,
             visit[j] = deref(deref(child).m_children[j]).m_visit
             j -= 1
         idx = np.random.choice(actions.size(), p=visit/np.sum(visit)) if \
-              (deref(deref(child).m_game).get_turn() <= cutoff) & (tau > 0) else \
-              np.argmax(visit)
+            (deref(deref(child).m_game).get_turn() <= cutoff) & (tau > 0) else \
+            np.argmax(visit)
         if (td):
             v = deref(deref(child).m_children[idx]).m_value
         children = deref(child).m_children
@@ -404,10 +397,10 @@ cpdef (int, int, int) self_play(int a_ep_count, int a_sim_count, int a_tau,
         parent = trees[0]
         if (deref(deref(parent).m_game).get_turn() & 1):
             search(trees, rbs, sim_count, tau, eval_func_p1,
-                   c_puct, alpha, epsilon, cutoff, history, td, save)
+                c_puct, alpha, epsilon, cutoff, history, td, save)
         else:
             search(trees, rbs, sim_count, tau, eval_func_p2,
-                   c_puct, alpha, epsilon, cutoff, history, td, save)
+                c_puct, alpha, epsilon, cutoff, history, td, save)
         if (log):
             content += log_stats(deref(parent))
         i = trees.size() - 1
