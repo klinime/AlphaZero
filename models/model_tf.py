@@ -47,7 +47,7 @@ def init_model(name, layers, filters, head_filters, c,
 
     p = Conv2D(
         head_filters * 2,
-        3,
+        1,
         padding='same',
         data_format='channels_first',
         use_bias=False, 
@@ -61,7 +61,7 @@ def init_model(name, layers, filters, head_filters, c,
 
     v = Conv2D(
         head_filters,
-        3,
+        1,
         padding='same',
         data_format='channels_first',
         use_bias=False,
