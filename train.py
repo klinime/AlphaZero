@@ -64,6 +64,9 @@ def main():
     rb = ReplayBuffer(args.log_dir, args.history, args.buffer_size, args.td_epsilon)
     if args.start_iter > 0:
         agent.load(args.start_iter-1)
+        if args.framework = 'torch':
+            for g in agent.opt.param_groups:
+                g['lr'] = args.learning_rate
         rb.load(args.start_iter-1)
         loss_df = pd.read_csv('{}/loss{}.csv'.format(
             args.log_dir, '_td' if args.td_epsilon else ''))
