@@ -2,6 +2,7 @@
 import numpy as np
 import torch
 from torch import nn, optim
+import torch.nn.functional as F
 from torchsummary import summary
 from pathlib import Path
 
@@ -44,14 +45,16 @@ class Model(nn.Module):
         self.v_linear = nn.Linear(height * width * head_planes, 256)
         self.v_linrelu = nn.ReLU(inplace=True)
         self.value = nn.Linear(256, 1)
-        self.v_tanh = nn.Tanh()
 
     def forward(self, x):
         x = self.res_layers(self.relu(self.bn(self.conv(x))))
         p = self.policy(self.p_flatten(self.p_relu(self.p_bn(self.p_conv(x)))))
         v = self.v_flatten(self.v_relu(self.v_bn(self.v_conv(x))))
-        v = self.v_tanh(self.value(self.v_linrelu(self.v_linear(v))))
+        v = self.value(self.v_linrelu(self.v_linear(v)))
         return p, v
+
+def cross_entropy(logit, target):
+    return torch.mean(torch.sum(-target * F.log_softmax(logit, dim=1), dim=1))
 
 class Agent():
     def __init__(self, path, layers, filters, head_filters, c,
@@ -60,7 +63,7 @@ class Agent():
         self.nnet = Model(
             layers, depth, filters, head_filters,
             height, width, ac_dim).to(device)
-        self.p_loss = nn.KLDivLoss(reduction='batchmean')
+        self.p_loss = cross_entropy
         self.v_loss = nn.MSELoss()
         self.opt = optim.Adam(self.nnet.parameters(), lr=lr, weight_decay=c)
         self.device = device
@@ -72,15 +75,15 @@ class Agent():
     def forward(self, s):
         with torch.no_grad():
             ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
-            ps = nn.functional.softmax(ps, dim=1)
+            ps = F.softmax(ps, dim=1)
+            vs = F.tanh(vs)
         return ps.data.cpu().numpy().flatten(), vs.data.cpu().numpy().flatten()
 
     def update(self, s, pi, z):
         self.opt.zero_grad()
         ps, vs = self.nnet(torch.from_numpy(s.astype(np.float32)).to(self.device))
-        ps = nn.functional.log_softmax(ps, dim=1)
         p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
-        v_loss = self.v_loss(vs, torch.from_numpy(z.astype(np.float32)).to(self.device))
+        v_loss = self.v_loss(F.tanh(vs), torch.from_numpy(z.astype(np.float32)).to(self.device))
         if self.device.type == 'cuda':
             self.scaler.scale(p_loss).backward(retain_graph=True)
             self.scaler.scale(v_loss).backward()
