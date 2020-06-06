@@ -50,7 +50,7 @@ class Model(nn.Module):
         x = self.res_layers(self.relu(self.bn(self.conv(x))))
         p = self.policy(self.p_flatten(self.p_relu(self.p_bn(self.p_conv(x)))))
         v = self.v_flatten(self.v_relu(self.v_bn(self.v_conv(x))))
-        v = self.value(self.v_linrelu(self.v_linear(v)))
+        v = torch.tanh(self.value(self.v_linrelu(self.v_linear(v))))
         return p, v
 
 def cross_entropy(logit, target):
@@ -76,14 +76,13 @@ class Agent():
         with torch.no_grad():
             ps, vs = self.nnet(torch.from_numpy(s).to(self.device))
             ps = F.softmax(ps, dim=1)
-            vs = F.tanh(vs)
         return ps.data.cpu().numpy().flatten(), vs.data.cpu().numpy().flatten()
 
     def update(self, s, pi, z):
         self.opt.zero_grad()
         ps, vs = self.nnet(torch.from_numpy(s.astype(np.float32)).to(self.device))
         p_loss = self.p_loss(ps, torch.from_numpy(pi).to(self.device))
-        v_loss = self.v_loss(F.tanh(vs), torch.from_numpy(z.astype(np.float32)).to(self.device))
+        v_loss = self.v_loss(vs, torch.from_numpy(z.astype(np.float32)).to(self.device))
         if self.device.type == 'cuda':
             self.scaler.scale(p_loss).backward(retain_graph=True)
             self.scaler.scale(v_loss).backward()
