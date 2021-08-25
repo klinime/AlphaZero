@@ -2,5 +2,5 @@ Cython==3.0a5
 numpy
 pandas
 scipy
-tensorflow==2.2.0
+tensorflow==2.5.1
 torch==1.5.0
